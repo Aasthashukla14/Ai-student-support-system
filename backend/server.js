@@ -10,6 +10,10 @@ const app = express();
 
 // Connect Database
 connectDB();
+// Auto seed if SEED_ON_START is true
+if (process.env.SEED_ON_START === 'true') {
+  const seedDB = require('./utils/seeder');
+}
 
 // Middleware
 app.use(cors({ origin: '*', credentials: false }));
@@ -34,6 +38,31 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({ success: false, message: err.message || 'Server Error' });
 });
+// One-time seed route
+app.get('/api/seed-now', async (req, res) => {
+  try {
+    const CareerField = require('./models/CareerField');
+    const Roadmap = require('./models/Roadmap');
+    const { Project, QuizQuestion } = require('./models/ProjectAndQuiz');
+    const careerFields = require('./data/careerFields');
+    const quizQuestions = require('./data/quizQuestions');
+    const projects = require('./data/projects');
+    const roadmaps = require('./data/roadmaps');
+    await CareerField.deleteMany({});
+    await Roadmap.deleteMany({});
+    await Project.deleteMany({});
+    await QuizQuestion.deleteMany({});
+    await CareerField.insertMany(careerFields);
+    await Roadmap.insertMany(roadmaps);
+    await Project.insertMany(projects);
+    await QuizQuestion.insertMany(quizQuestions);
+    res.json({ success: true, message: 'Database seeded successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
 
 // 404
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
